@@ -1,0 +1,6 @@
+I have created a basic scene, where you have a spehere as the player that can be controlled by the PlayerController.cs
+
+However this file is not read by my unity for some reason and I could not test if it works.
+
+Github did also not allow me to upload the entire unity project (apparently we have some sort of limit to upload) so I added the asset
+folder containing all scenes, materails, scripts.
