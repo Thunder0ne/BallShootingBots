@@ -1,0 +1,10 @@
+1) Balls collide one another, but after any collision they do not cause any score, only direct hits cause score
+2) There are 5 balls, on game start one in the centre of the map and 2 for each team to be collected and used
+3) game is 5 vs 5
+4) any time an agent is hit the agents gets 1 wound. Each agent has 2 wounds (TBD)
+5) game is won by the last standing team
+6) the arena has boundaries, so the balls and the agents collide against the arena bounds, remember back bouncing balls
+do not count as hit
+7) to catch a moving ball an agent has to roll a die, the probability of success depends on the speed of the ball (relative speed?)
+- the probability is 1 from speed 0 to the first threshold (TBD) then goes linearly to 0 up to another threshold TBD
+8) if an agent fails to catch a ball (that has not bounced against anything) the agent suffer one wound

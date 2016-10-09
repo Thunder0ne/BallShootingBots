@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class AIController : MonoBehaviour
 {
@@ -7,7 +8,10 @@ public class AIController : MonoBehaviour
     public float maxTorque = 2.0f;
     public Camera mainCamera;
 
-    private Rigidbody rb;
+    [SerializeField]
+    private GameManager gameManager;
+
+    private Rigidbody agentRigidBody;
     private float groundHeight;
     private Vector3 goal;
     private float prevError;
@@ -24,14 +28,15 @@ public class AIController : MonoBehaviour
     void Start()
     {
         Debug.Log("Start called");
-        rb = GetComponent<Rigidbody>();
-        groundHeight = rb.position.y;
+        agentRigidBody = GetComponent<Rigidbody>();
+        groundHeight = agentRigidBody.position.y;
+        _radius = GetComponentInChildren<SphereCollider>().radius;
     }
 
     void FixedUpdate_test_perf()
     {
-        rb.AddRelativeTorque(0.0f, maxTorque, 0.0f);
-        Debug.Log("angular velocity " + rb.angularVelocity.magnitude);
+        agentRigidBody.AddRelativeTorque(0.0f, maxTorque, 0.0f);
+        Debug.Log("angular velocity " + agentRigidBody.angularVelocity.magnitude);
     }
 
     void FixedUpdate()//_actual_control()//
@@ -49,7 +54,7 @@ public class AIController : MonoBehaviour
         //control = Mathf.Clamp(control / maxTorque, -1, 1);
         //Debug.Log("control " + control);
         prevError = angleError;
-        rb.AddRelativeTorque(0.0f, control, 0.0f);
+        agentRigidBody.AddRelativeTorque(0.0f, control, 0.0f);
         //rb.AddRelativeTorque(0.0f, control * maxTorque, 0.0f);
 
 
@@ -58,13 +63,13 @@ public class AIController : MonoBehaviour
         if (distError < 1.0f)
         {
             float desiredVel = distError;
-            float speedError = rb.velocity.magnitude - desiredVel;
+            float speedError = agentRigidBody.velocity.magnitude - desiredVel;
             speedControl = - kp * speedError;
         }
-        rb.AddRelativeForce(0.0f, 0.0f, speedControl);
+        agentRigidBody.AddRelativeForce(0.0f, 0.0f, speedControl);
 
-        float sliding = Vector3.Dot(rb.velocity, transform.right);
-        rb.AddRelativeForce(-sliding, 0, 0, ForceMode.VelocityChange);
+        float sliding = Vector3.Dot(agentRigidBody.velocity, transform.right);
+        agentRigidBody.AddRelativeForce(-sliding, 0, 0, ForceMode.VelocityChange);
     }
 
     
@@ -85,6 +90,58 @@ public class AIController : MonoBehaviour
     //}
 
     void Update()
+    {
+        LinkedList<Ball> balls = gameManager.GetBalls();
+        //Please note:!!!
+        //we do this like this because we are 100% sure that the list does not 
+        //change while we are iterating it
+        LinkedListNode<Ball> iterator = balls.First;
+        for (int i=0; i < balls.Count && iterator != null; i++)
+        {
+            Ball ball = iterator.Value;
+            iterator = iterator.Next;
+            float combinedRadius = ball.GetRadius() + GetRadius();
+            Vector3 relativeVelocity = ball.GetVelocity() - agentRigidBody.velocity;
+            Vector3 relativePosition = ball.GetPosition() - GetPosition();
+            //please remember intersection between ray and sphere
+            //and second order equations
+            float bCoefficient = 2.0f * Vector3.Dot(relativeVelocity, relativePosition);
+            float aCoefficient = relativeVelocity.sqrMagnitude;
+            float cCoefficient = relativePosition.sqrMagnitude - combinedRadius * combinedRadius;
+            float equationDiscriminant = bCoefficient * bCoefficient - 4.0f * aCoefficient * cCoefficient;
+            if (equationDiscriminant >= 0) // potential collision
+            {
+                float inverseTerm = 1.0f / (2.0f * aCoefficient);
+                float sqrRoot = Mathf.Sqrt(equationDiscriminant);
+                float t1 = (-bCoefficient - sqrRoot) * inverseTerm;
+                float t2 = (-bCoefficient + sqrRoot) * inverseTerm;
+                float t = t1;
+                if (t1 < 0)
+                {
+                    t = t2;
+                }
+                if (t >= 0)
+                {
+                    if(t <= MAX_PREDICTION_TIME_HORIZON)
+                    {
+                        //try and dodge
+                    }
+                }
+            }
+        }
+    }
+
+    private Vector3 GetPosition()
+    {
+        return agentRigidBody.position;
+    }
+
+    private float GetRadius()
+    {
+        return _radius;
+    }
+
+    private void UpdateGoalWithClick()
     {
         if (Input.GetMouseButtonDown(0))
         {
@@ -123,4 +180,7 @@ public class AIController : MonoBehaviour
         }
         return angleError;
     }
+
+    private float _radius;
+    private const float MAX_PREDICTION_TIME_HORIZON = 2.0f;
 }

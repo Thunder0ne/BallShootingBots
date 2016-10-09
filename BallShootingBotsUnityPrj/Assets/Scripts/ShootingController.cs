@@ -12,6 +12,10 @@ public class ShootingController : MonoBehaviour
     [SerializeField]
     private float shootingPeriod = 1.0f;
 
+    [SerializeField]
+    private GameManager gameManager;
+
+
     private float _time;
 
     // Use this for initialization
@@ -56,6 +60,8 @@ public class ShootingController : MonoBehaviour
 
     private void Shoot()
     {
-        GameObject.Instantiate(bullet, bulletSpawn.position, bulletSpawn.rotation);
+        GameObject ballGobj = GameObject.Instantiate(bullet, bulletSpawn.position, bulletSpawn.rotation) as GameObject;
+        Ball ball = ballGobj.GetComponent<Ball>();
+        gameManager.AddBall(ball);
     }
 }

@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Bullet : MonoBehaviour
+public class Ball : MonoBehaviour
 {
     [SerializeField]
     float damageValue = 1.0f;
@@ -14,10 +14,27 @@ public class Bullet : MonoBehaviour
         }
     }
 
-	// Use this for initialization
+    public float GetRadius()
+    {
+        return _radius;
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return ballRigidBody.velocity;
+    }
+
+    public Vector3 GetPosition()
+    {
+        return ballRigidBody.position;
+    }
+    
+    // Use this for initialization
 	void Start ()
     {
+        ballRigidBody = GetComponent<Rigidbody>();
         GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().transform.forward * 10.0f;
+        _radius = GetComponent<SphereCollider>().radius;
     }
 
     void OnCollisionEnter(Collision collision)
@@ -33,6 +50,9 @@ public class Bullet : MonoBehaviour
         }
         GameObject.Destroy(this.gameObject);
     }
+
+    private float _radius;
+    private Rigidbody ballRigidBody;
 
     //void OnTriggerEnter(Collider other)
     //{
