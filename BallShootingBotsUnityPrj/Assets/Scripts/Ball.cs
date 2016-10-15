@@ -6,6 +6,18 @@ public class Ball : MonoBehaviour
     [SerializeField]
     float damageValue = 1.0f;
 
+    private GameManager gameManager;
+
+    void OnDestroy()
+    {
+        gameManager.RemoveBall(this);
+    }
+
+    public void SetGameManager(GameManager gameManager)
+    {
+        this.gameManager = gameManager;
+    }
+
     public float damage
     {
         get

@@ -41,6 +41,17 @@ public class AIController : MonoBehaviour
 
     void FixedUpdate()//_actual_control()//
     {
+        DodgeBallCollisionPrediction();
+        GoToCurrentGoal();
+    }
+
+    void Update()
+    {
+        UpdateGoalWithClick();
+    }
+
+    private void GoToCurrentGoal()
+    {
         float dt = Time.fixedDeltaTime;
         float control = 0;
         //compute the error
@@ -64,7 +75,7 @@ public class AIController : MonoBehaviour
         {
             float desiredVel = distError;
             float speedError = agentRigidBody.velocity.magnitude - desiredVel;
-            speedControl = - kp * speedError;
+            speedControl = -kp * speedError;
         }
         agentRigidBody.AddRelativeForce(0.0f, 0.0f, speedControl);
 
@@ -72,7 +83,6 @@ public class AIController : MonoBehaviour
         agentRigidBody.AddRelativeForce(-sliding, 0, 0, ForceMode.VelocityChange);
     }
 
-    
     //void FixedUpdate__()
     //{
     //    float moveHorizontal = Input.GetAxis("Horizontal");
@@ -87,16 +97,16 @@ public class AIController : MonoBehaviour
 
     //    rb.AddRelativeForce(0.0f, 0.0f, moveVertival * maxForce);
     //    rb.AddRelativeTorque(0.0f, moveHorizontal * maxTorque, 0.0f);
-    //}
+    //}    
 
-    void Update()
+    private void DodgeBallCollisionPrediction()
     {
         LinkedList<Ball> balls = gameManager.GetBalls();
         //Please note:!!!
         //we do this like this because we are 100% sure that the list does not 
         //change while we are iterating it
         LinkedListNode<Ball> iterator = balls.First;
-        for (int i=0; i < balls.Count && iterator != null; i++)
+        for (int i = 0; i < balls.Count && iterator != null; i++)
         {
             Ball ball = iterator.Value;
             iterator = iterator.Next;
@@ -122,9 +132,15 @@ public class AIController : MonoBehaviour
                 }
                 if (t >= 0)
                 {
-                    if(t <= MAX_PREDICTION_TIME_HORIZON)
+                    if (t <= MAX_PREDICTION_TIME_HORIZON)
                     {
                         //try and dodge
+                        //Debug.LogWarning("collision predicted");
+                        Vector3 predictedRelativePosition = relativePosition + relativeVelocity * t;
+                        //Please note the predicted relative position multipleir needs to be
+                        //more than the slow down distance!
+                        Vector3 relativeFleeGoal = (predictedRelativePosition * -5.0f);
+                        goal = GetPosition() + relativeFleeGoal;
                     }
                 }
             }

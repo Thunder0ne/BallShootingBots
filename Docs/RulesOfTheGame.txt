@@ -8,3 +8,4 @@ do not count as hit
 7) to catch a moving ball an agent has to roll a die, the probability of success depends on the speed of the ball (relative speed?)
 - the probability is 1 from speed 0 to the first threshold (TBD) then goes linearly to 0 up to another threshold TBD
 8) if an agent fails to catch a ball (that has not bounced against anything) the agent suffer one wound
+9) the balls do _not_ move at constant speed, they lose speed in time with a predefined energy drag

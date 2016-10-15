@@ -9,11 +9,6 @@ public class DestroyOutOfBounds : MonoBehaviour
     void OnTriggerExit(Collider other)
     {
         Debug.LogWarning("DestroyOutOfBounds OnTriggerExit other " + other.gameObject.name);
-        Ball ball = other.gameObject.GetComponent<Ball>();
-        if(ball != null)
-        {
-            gameManager.RemoveBall(ball);
-        }
         GameObject.Destroy(other.gameObject);
     }
 }

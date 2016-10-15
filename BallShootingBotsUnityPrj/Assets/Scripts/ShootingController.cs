@@ -4,10 +4,10 @@ using System.Collections.Generic;
 public class ShootingController : MonoBehaviour
 {
     [SerializeField]
-    private Transform bulletSpawn;
+    private Transform ballSpawn;
 
     [SerializeField]
-    private GameObject bullet;
+    private GameObject ball;
 
     [SerializeField]
     private float shootingPeriod = 1.0f;
@@ -53,15 +53,16 @@ public class ShootingController : MonoBehaviour
             if (_time > shootingPeriod)
             {
                 _time = 0;
-                Shoot();
+                ShootBall();
             }
         }
 	}
 
-    private void Shoot()
+    private void ShootBall()
     {
-        GameObject ballGobj = GameObject.Instantiate(bullet, bulletSpawn.position, bulletSpawn.rotation) as GameObject;
+        GameObject ballGobj = GameObject.Instantiate(this.ball, ballSpawn.position, ballSpawn.rotation) as GameObject;
         Ball ball = ballGobj.GetComponent<Ball>();
         gameManager.AddBall(ball);
+        ball.SetGameManager(gameManager);
     }
 }
