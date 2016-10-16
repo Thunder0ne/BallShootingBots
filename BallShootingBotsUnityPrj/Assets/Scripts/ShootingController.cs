@@ -48,7 +48,8 @@ public class ShootingController : MonoBehaviour
 	void Update ()
     {
         _time += Time.deltaTime;
-        if(Input.GetButton("Fire1"))
+        //if(Input.GetButton("Fire1"))
+        if(Input.GetKeyDown(KeyCode.LeftControl))
         {
             if (_time > shootingPeriod)
             {

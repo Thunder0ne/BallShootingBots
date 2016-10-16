@@ -16,6 +16,9 @@ public class AIController : MonoBehaviour
     private Vector3 goal;
     private float prevError;
 
+    private bool avoidanceActive;
+    private Vector3 avoidanceGoal;
+
     //float at max angul vel of 3.6 Radians / sec
     //good params are kp = 3.75 and kd = 0.65
 
@@ -41,21 +44,32 @@ public class AIController : MonoBehaviour
 
     void FixedUpdate()//_actual_control()//
     {
-        DodgeBallCollisionPrediction();
-        GoToCurrentGoal();
+        //FleeBallBehavior();
+        AvoidBallsFindGoal();
+        if (avoidanceActive)
+        {
+            GoToGoal(avoidanceGoal);
+        }
+        else
+        {
+            GoToGoal(goal);
+        }
     }
 
     void Update()
     {
-        UpdateGoalWithClick();
+        if (!avoidanceActive)
+        {
+            UpdateGoalWithClick();
+        }
     }
 
-    private void GoToCurrentGoal()
+    private void GoToGoal(Vector3 targetPosition)
     {
         float dt = Time.fixedDeltaTime;
         float control = 0;
         //compute the error
-        float angleError = ComputeAngleError();
+        float angleError = ComputeAngleError(targetPosition);
         float kp = 3.75f;
         //float kd = 1.26f;// 65f;
         float kd = 0.65f;
@@ -69,7 +83,7 @@ public class AIController : MonoBehaviour
         //rb.AddRelativeTorque(0.0f, control * maxTorque, 0.0f);
 
 
-        float distError = Vector3.Distance(transform.position, goal);
+        float distError = Vector3.Distance(transform.position, targetPosition);
         float speedControl = maxForce;
         if (distError < 1.0f)
         {
@@ -99,7 +113,95 @@ public class AIController : MonoBehaviour
     //    rb.AddRelativeTorque(0.0f, moveHorizontal * maxTorque, 0.0f);
     //}    
 
-    private void DodgeBallCollisionPrediction()
+    private void AvoidBallsFindGoal()
+    {
+        LinkedList<Ball> balls = gameManager.GetBalls();
+        LinkedListNode<Ball> iterator = balls.First;
+        for (int i = 0; i < balls.Count && iterator != null; i++)
+        {
+            Ball ball = iterator.Value;
+            iterator = iterator.Next;
+            float combinedRadius = ball.GetRadius() + GetRadius();
+            Vector3 relativeVelocity = agentRigidBody.velocity - ball.GetVelocity();
+            Vector3 relativePosition = ball.GetPosition() - GetPosition();
+            float relativeDistance = relativePosition.magnitude;//SQUARE ROOT
+            if (relativeDistance <= combinedRadius)
+            {
+                //do something else
+                continue;
+            }
+
+            float tangetPointDistanceSqr = relativeDistance * relativeDistance
+                                            - combinedRadius * combinedRadius;
+            float h = tangetPointDistanceSqr / relativeDistance;
+
+            //SQUARE ROOT
+            float n = (combinedRadius * relativeDistance) / Mathf.Sqrt(tangetPointDistanceSqr);
+
+
+
+            Vector3 fwdCollisionComponent = relativePosition * (h / relativeDistance);
+            Vector3 sidewaysCollisionComponent_R = Vector3.Cross(Vector3.up, relativePosition / relativeDistance) * n;
+            Vector3 sidewaysCollisionComponent_L = -sidewaysCollisionComponent_R;
+
+            Debug.DrawLine(GetPosition(), GetPosition() + fwdCollisionComponent + sidewaysCollisionComponent_R, Color.yellow);
+            Debug.DrawLine(GetPosition(), GetPosition() + fwdCollisionComponent + sidewaysCollisionComponent_L, Color.yellow);
+
+            //checking if the relative velocity is insie the VO (Velocity Obstacle)
+            //if the cross product of the relative velocity by the two tangent vectors
+            //goes downwards or upwards for BOTH (or one of them is zero) the relative velocity is 
+            //outside the VO anbd therefore no collision will occur
+
+            Vector3 t1Cross = Vector3.Cross(relativeVelocity, fwdCollisionComponent + sidewaysCollisionComponent_R);
+            Vector3 t2Cross = Vector3.Cross(relativeVelocity, fwdCollisionComponent + sidewaysCollisionComponent_L);
+            if (Vector3.Dot(t1Cross, t2Cross) < 0)
+            {
+                //potential collision
+                bool isGoingToCollide = true;
+                float vMax = (relativeDistance - combinedRadius) / MAX_PREDICTION_TIME_HORIZON;
+                float rVmax = combinedRadius / MAX_PREDICTION_TIME_HORIZON;
+                if (Vector3.Dot(relativeVelocity, relativePosition / relativeDistance)
+                    < vMax + rVmax)
+                {
+                    if ((relativeVelocity - relativePosition * ((vMax + rVmax) / relativeDistance)).sqrMagnitude
+                        > rVmax * rVmax)
+                    {
+                        //isGoingToCollide = false;
+                    }
+                }
+
+                if (isGoingToCollide)
+                {
+                    Debug.Log("Potential collision detected");
+                    //we decided at the current stage that the robot will avoid
+                    //the obstacle at top speed, but this needs to be improved
+
+                    //if we choose exactly one of the tangent direction the agent
+                    //will touch the obstacle, which is a collision anyway
+                    //so we need to pick a direction close to the VO (Velocity Obstacle)
+                    //but outside of it
+                    //therefore we choose a forward component slilghtly smaller
+                    Vector3 fwd = fwdCollisionComponent * 0.9f;
+                    Vector3 sideways = sidewaysCollisionComponent_R;
+                    if (Vector3.Dot(relativeVelocity, sidewaysCollisionComponent_R) < 0)
+                    {
+                        sideways = sidewaysCollisionComponent_L;
+                    }
+                    avoidanceActive = true;
+                    //SQUARE ROOT
+                    avoidanceGoal = (fwd + sideways).normalized * 1000.0f;//just an arbitrary number
+                    //to set the goal far away in order the robot not to slow down
+                    //TODO this choice can be optimized
+                }
+                else
+                {
+                    avoidanceActive = false;
+                }
+            }
+        }
+    }
+
+    private void FleeBallBehavior()
     {
         LinkedList<Ball> balls = gameManager.GetBalls();
         //Please note:!!!
@@ -174,17 +276,17 @@ public class AIController : MonoBehaviour
                     //Debug.Log("object hit " + hits[0].collider.gameObject.name + " position " + hits[0].point);
                     goal = hits[0].point;
                     goal.y = transform.position.y;
-                    float err = ComputeAngleError() * 180.0f / Mathf.PI;
+                    float err = ComputeAngleError(goal) * 180.0f / Mathf.PI;
                     //Debug.Log("Angle error " + err);
                 }
             }
         }
     }
 
-    private float ComputeAngleError()
+    private float ComputeAngleError(Vector3 targetPosition)
     {
         float angleError = 0;
-        Vector3 desiredForward = goal - transform.position;
+        Vector3 desiredForward = targetPosition - transform.position;
         if (desiredForward.sqrMagnitude > 0.00001f)
         {
             desiredForward.Normalize();
