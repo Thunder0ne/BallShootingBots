@@ -13,7 +13,7 @@ public class AIController : MonoBehaviour
 
     private Rigidbody agentRigidBody;
     private float groundHeight;
-    private Vector3 goal;
+    private Vector3 objectiveGoal;
     private float prevError;
 
     private bool avoidanceActive;
@@ -25,7 +25,7 @@ public class AIController : MonoBehaviour
     void Awake()
     {
         Debug.Log("Awake called");
-        goal = transform.position;
+        objectiveGoal = transform.position;
     }
 
     void Start()
@@ -52,8 +52,8 @@ public class AIController : MonoBehaviour
         }
         else
         {
-            GoToGoal(goal);
-        }
+            GoToGoal(objectiveGoal);
+        }        
     }
 
     void Update()
@@ -77,7 +77,7 @@ public class AIController : MonoBehaviour
         //control = -kp * error - kd * ((err - prevErr) / dt);
         control = -kp * angleError - kd * ((angleError - prevError) / dt);
         //control = Mathf.Clamp(control / maxTorque, -1, 1);
-        //Debug.Log("control " + control);
+        Debug.Log("rotating control " + control);
         prevError = angleError;
         agentRigidBody.AddRelativeTorque(0.0f, control, 0.0f);
         //rb.AddRelativeTorque(0.0f, control * maxTorque, 0.0f);
@@ -121,7 +121,7 @@ public class AIController : MonoBehaviour
         {
             Ball ball = iterator.Value;
             iterator = iterator.Next;
-            float combinedRadius = ball.GetRadius() + GetRadius();
+            float combinedRadius = ball.GetRadius() * 1.1f + GetRadius() * 1.1f;
             Vector3 relativeVelocity = agentRigidBody.velocity - ball.GetVelocity();
             Vector3 relativePosition = ball.GetPosition() - GetPosition();
             float relativeDistance = relativePosition.magnitude;//SQUARE ROOT
@@ -146,6 +146,9 @@ public class AIController : MonoBehaviour
 
             Debug.DrawLine(GetPosition(), GetPosition() + fwdCollisionComponent + sidewaysCollisionComponent_R, Color.yellow);
             Debug.DrawLine(GetPosition(), GetPosition() + fwdCollisionComponent + sidewaysCollisionComponent_L, Color.yellow);
+
+            Debug.DrawLine(GetPosition(), GetPosition() + agentRigidBody.velocity, Color.blue);
+
 
             //checking if the relative velocity is insie the VO (Velocity Obstacle)
             //if the cross product of the relative velocity by the two tangent vectors
@@ -181,7 +184,7 @@ public class AIController : MonoBehaviour
                     //so we need to pick a direction close to the VO (Velocity Obstacle)
                     //but outside of it
                     //therefore we choose a forward component slilghtly smaller
-                    Vector3 fwd = fwdCollisionComponent * 0.9f;
+                    //Vector3 fwd = fwdCollisionComponent * 0.9f;
                     Vector3 sideways = sidewaysCollisionComponent_R;
                     if (Vector3.Dot(relativeVelocity, sidewaysCollisionComponent_R) < 0)
                     {
@@ -189,7 +192,18 @@ public class AIController : MonoBehaviour
                     }
                     avoidanceActive = true;
                     //SQUARE ROOT
-                    avoidanceGoal = (fwd + sideways).normalized * 1000.0f;//just an arbitrary number
+                    //Vector3 desiredDirection = (fwdCollisionComponent + sideways).normalized * maxSpeed;
+
+                    //WARNING non optinmized code: it needs optimizations!!!!
+                    Vector3 desiredRelVel = (fwdCollisionComponent + sideways).normalized * relativeVelocity.magnitude;
+                    Vector3 desiredAbsoluteVel = desiredRelVel + ball.GetVelocity();
+                    avoidanceGoal = GetPosition() + desiredAbsoluteVel;
+                    //avoidanceGoal = GetPosition() + desiredDirection * 100.0f;
+                    //avoidanceGoal = GetPosition() + (fwdCollisionComponent + sideways).normalized * 1000.0f;//just an arbitrary number
+                    Debug.DrawLine(GetPosition(), avoidanceGoal, Color.red);
+
+                    Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.green);
+
                     //to set the goal far away in order the robot not to slow down
                     //TODO this choice can be optimized
                 }
@@ -242,7 +256,7 @@ public class AIController : MonoBehaviour
                         //Please note the predicted relative position multipleir needs to be
                         //more than the slow down distance!
                         Vector3 relativeFleeGoal = (predictedRelativePosition * -5.0f);
-                        goal = GetPosition() + relativeFleeGoal;
+                        objectiveGoal = GetPosition() + relativeFleeGoal;
                     }
                 }
             }
@@ -274,9 +288,9 @@ public class AIController : MonoBehaviour
                 else
                 {
                     //Debug.Log("object hit " + hits[0].collider.gameObject.name + " position " + hits[0].point);
-                    goal = hits[0].point;
-                    goal.y = transform.position.y;
-                    float err = ComputeAngleError(goal) * 180.0f / Mathf.PI;
+                    objectiveGoal = hits[0].point;
+                    objectiveGoal.y = transform.position.y;
+                    float err = ComputeAngleError(objectiveGoal) * 180.0f / Mathf.PI;
                     //Debug.Log("Angle error " + err);
                 }
             }
