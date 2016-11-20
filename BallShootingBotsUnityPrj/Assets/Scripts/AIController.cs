@@ -1,10 +1,4 @@
-﻿/*
- "Just to test if I can bloody submit!"
-                            - Csaba Koles
-  */
-
-
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -59,7 +53,7 @@ public class AIController : MonoBehaviour
         else
         {
             GoToGoal(objectiveGoal);
-        }        
+        }                
     }
 
     void Update()
