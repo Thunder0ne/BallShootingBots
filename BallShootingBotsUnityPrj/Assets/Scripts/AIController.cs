@@ -212,6 +212,10 @@ public class AIController : MonoBehaviour
                     avoidanceActive = false;
                 }
             }
+            else
+            {
+                avoidanceActive = false;
+            }
         }
     }
 
