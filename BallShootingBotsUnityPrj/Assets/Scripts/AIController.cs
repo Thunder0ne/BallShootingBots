@@ -11,13 +11,6 @@ public class AIController : MonoBehaviour
     [SerializeField]
     private GameManager gameManager;
 
-    private Rigidbody agentRigidBody;
-    private float groundHeight;
-    private Vector3 objectiveGoal;
-    private float prevError;
-
-    private bool avoidanceActive;
-    private Vector3 avoidanceGoal;
 
     //float at max angul vel of 3.6 Radians / sec
     //good params are kp = 3.75 and kd = 0.65
@@ -44,10 +37,38 @@ public class AIController : MonoBehaviour
 
     void FixedUpdate()//_actual_control()//
     {
-        //FleeBallBehavior();
-        AvoidBallsFindGoal();
-        if (avoidanceActive)
+        bool currAvoidanceActive = AvoidBallsFindGoal();
+
+        //TODO this is a debug code fragment: remove after testing
+        if (_avoidanceActive != currAvoidanceActive)
         {
+            if (currAvoidanceActive)
+            {
+                _avoideObstacleTimer = 0;
+                _avoidanceActive = currAvoidanceActive;
+            }
+            else
+            {
+                if (_avoideObstacleTimer < MAX_PREDICTION_TIME_HORIZON * 0.5f)
+                {
+                    Debug.Log("Keepping current avoidance behavior + _avoideObstacleTimer " + _avoideObstacleTimer);
+                }
+                else
+                {
+                    _avoidanceActive = currAvoidanceActive;
+                }
+            }
+        }
+
+        if (_avoidanceActive != currAvoidanceActive)
+        {
+            string behaviorName = _avoidanceActive ? "Avoidance" : "Go To Goal";
+            Debug.LogWarning("Changed behaviour to " + behaviorName);
+        }
+
+        if (_avoidanceActive)
+        {
+            _avoideObstacleTimer += Time.fixedDeltaTime;
             GoToGoal(avoidanceGoal);
         }
         else
@@ -58,7 +79,7 @@ public class AIController : MonoBehaviour
 
     void Update()
     {
-        if (!avoidanceActive)
+        if (!_avoidanceActive)
         {
             UpdateGoalWithClick();
         }
@@ -77,7 +98,7 @@ public class AIController : MonoBehaviour
         //control = -kp * error - kd * ((err - prevErr) / dt);
         control = -kp * angleError - kd * ((angleError - prevError) / dt);
         //control = Mathf.Clamp(control / maxTorque, -1, 1);
-        Debug.Log("rotating control " + control);
+
         prevError = angleError;
         agentRigidBody.AddRelativeTorque(0.0f, control, 0.0f);
         //rb.AddRelativeTorque(0.0f, control * maxTorque, 0.0f);
@@ -113,16 +134,21 @@ public class AIController : MonoBehaviour
     //    rb.AddRelativeTorque(0.0f, moveHorizontal * maxTorque, 0.0f);
     //}    
 
-    private void AvoidBallsFindGoal()
+    private bool AvoidBallsFindGoal()
     {
         LinkedList<Ball> balls = gameManager.GetBalls();
         LinkedListNode<Ball> iterator = balls.First;
+        bool potentialCollisionDetected = false;
         for (int i = 0; i < balls.Count && iterator != null; i++)
         {
             Ball ball = iterator.Value;
             iterator = iterator.Next;
             float combinedRadius = ball.GetRadius() * 1.1f + GetRadius() * 1.1f;
             Vector3 relativeVelocity = agentRigidBody.velocity - ball.GetVelocity();
+
+            Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.green);
+
+
             Vector3 relativePosition = ball.GetPosition() - GetPosition();
             float relativeDistance = relativePosition.magnitude;//SQUARE ROOT
             if (relativeDistance <= combinedRadius)
@@ -136,7 +162,8 @@ public class AIController : MonoBehaviour
             float h = tangetPointDistanceSqr / relativeDistance;
 
             //SQUARE ROOT
-            float n = (combinedRadius * relativeDistance) / Mathf.Sqrt(tangetPointDistanceSqr);
+            float tangetPointDistance = Mathf.Sqrt(tangetPointDistanceSqr);
+            float n = (combinedRadius * relativeDistance) / tangetPointDistance;
 
 
 
@@ -154,28 +181,49 @@ public class AIController : MonoBehaviour
             //if the cross product of the relative velocity by the two tangent vectors
             //goes downwards or upwards for BOTH (or one of them is zero) the relative velocity is 
             //outside the VO anbd therefore no collision will occur
-
-            Vector3 t1Cross = Vector3.Cross(relativeVelocity, fwdCollisionComponent + sidewaysCollisionComponent_R);
-            Vector3 t2Cross = Vector3.Cross(relativeVelocity, fwdCollisionComponent + sidewaysCollisionComponent_L);
+            Vector3 VOLegRight = fwdCollisionComponent + sidewaysCollisionComponent_R;
+            Vector3 VOLegLeft = fwdCollisionComponent + sidewaysCollisionComponent_L;
+            Vector3 t1Cross = Vector3.Cross(relativeVelocity, VOLegRight);
+            Vector3 t2Cross = Vector3.Cross(relativeVelocity, VOLegLeft);
             if (Vector3.Dot(t1Cross, t2Cross) < 0)
             {
                 //potential collision
+
+                //the direction of the velocity is within the forbidden velocity obstacle
+                //now we need to check if the velocity is big enough given the time horizon
+                //(or predictiontime) to cause a collision.                
                 bool isGoingToCollide = true;
-                float vMax = (relativeDistance - combinedRadius) / MAX_PREDICTION_TIME_HORIZON;
                 float rVmax = combinedRadius / MAX_PREDICTION_TIME_HORIZON;
-                if (Vector3.Dot(relativeVelocity, relativePosition / relativeDistance)
-                    < vMax + rVmax)
+                Vector3 centerOfMaxVel = relativePosition / MAX_PREDICTION_TIME_HORIZON;
+                //TODO optimize and use the sqr mag instead
+                float velDistToCenterOfMaxVel = (relativeVelocity - centerOfMaxVel).magnitude;
+                if(velDistToCenterOfMaxVel > rVmax)
                 {
-                    if ((relativeVelocity - relativePosition * ((vMax + rVmax) / relativeDistance)).sqrMagnitude
-                        > rVmax * rVmax)
+                    //over here
+                    //compare the projection of 
+                    //the velocity on the velocity obstacle leg
+                    //and compare it to tangetPointDistanceSqr scaled by the time horizon
+                    VOLegRight.Normalize();
+                    VOLegLeft.Normalize();
+                    float velProjOnVOLeg = Mathf.Max(Vector3.Dot(relativeVelocity, VOLegRight)
+                        , Vector3.Dot(relativeVelocity, VOLegLeft));
+                    if (velProjOnVOLeg < (tangetPointDistance / MAX_PREDICTION_TIME_HORIZON))
                     {
-                        //isGoingToCollide = false;
+                        //Debug.Log("Collision is too far away in time");
+                        isGoingToCollide = false;
+                    }
+                    else
+                    {
+                        //Debug.Log("vel proj r leg" + Vector3.Dot(relativeVelocity, VOLegRight));
+                        //Debug.Log("vel proj l leg" + Vector3.Dot(relativeVelocity, VOLegLeft));
+                        //Debug.Log("tang dist scaled" + (tangetPointDistance / MAX_PREDICTION_TIME_HORIZON));
+                        //Debug.Log("Collision is within time horizon");
                     }
                 }
 
                 if (isGoingToCollide)
                 {
-                    Debug.Log("Potential collision detected");
+                    //Debug.Log("Potential collision detected");
                     //we decided at the current stage that the robot will avoid
                     //the obstacle at top speed, but this needs to be improved
 
@@ -190,7 +238,8 @@ public class AIController : MonoBehaviour
                     {
                         sideways = sidewaysCollisionComponent_L;
                     }
-                    avoidanceActive = true;
+                    //_avoidanceActive = true;
+                    potentialCollisionDetected = true;
                     //SQUARE ROOT
                     //Vector3 desiredDirection = (fwdCollisionComponent + sideways).normalized * maxSpeed;
 
@@ -202,21 +251,22 @@ public class AIController : MonoBehaviour
                     //avoidanceGoal = GetPosition() + (fwdCollisionComponent + sideways).normalized * 1000.0f;//just an arbitrary number
                     Debug.DrawLine(GetPosition(), avoidanceGoal, Color.red);
 
-                    Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.green);
+                    Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.magenta);
 
                     //to set the goal far away in order the robot not to slow down
                     //TODO this choice can be optimized
                 }
-                else
-                {
-                    avoidanceActive = false;
-                }
+                //else
+                //{
+                //    _avoidanceActive = false;
+                //}
             }
-            else
-            {
-                avoidanceActive = false;
-            }
+            //else
+            //{
+            //    _avoidanceActive = false;
+            //}
         }
+        return potentialCollisionDetected;
     }
 
     private void FleeBallBehavior()
@@ -317,6 +367,15 @@ public class AIController : MonoBehaviour
         return angleError;
     }
 
+    private Rigidbody agentRigidBody;
+    private float groundHeight;
+    private Vector3 objectiveGoal;
+    private float prevError;
+
+    private bool _avoidanceActive;
+    private Vector3 avoidanceGoal;
+
     private float _radius;
-    private const float MAX_PREDICTION_TIME_HORIZON = 2.0f;
+    private const float MAX_PREDICTION_TIME_HORIZON = 1.0f;
+    private float _avoideObstacleTimer;
 }

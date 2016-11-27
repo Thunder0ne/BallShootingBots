@@ -47,8 +47,6 @@ public class Ball : MonoBehaviour
         ballRigidBody = GetComponent<Rigidbody>();
         GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().transform.forward * 10.0f;
         _radius = GetComponent<Renderer>().bounds.extents.x;
-        //_radius = GetComponent<SphereCollider>().radius;
-        Debug.LogError("radius of the ball is " + _radius);
     }
 
     void OnCollisionEnter(Collision collision)
