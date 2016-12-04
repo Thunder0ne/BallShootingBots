@@ -25,8 +25,11 @@ public class AIController : MonoBehaviour
     {
         Debug.Log("Start called");
         agentRigidBody = GetComponent<Rigidbody>();
-        groundHeight = agentRigidBody.position.y;
+        //groundHeight = agentRigidBody.position.y;
         _radius = GetComponentInChildren<SphereCollider>().radius;
+#if QUICK_TEST
+        objectiveGoal = new Vector3(-13.0f, 0.5f, 0.0f);
+#endif
     }
 
     void FixedUpdate_test_perf()
@@ -51,7 +54,7 @@ public class AIController : MonoBehaviour
             {
                 if (_avoideObstacleTimer < MAX_PREDICTION_TIME_HORIZON * 0.5f)
                 {
-                    Debug.Log("Keepping current avoidance behavior + _avoideObstacleTimer " + _avoideObstacleTimer);
+                    //Debug.Log("Keepping current avoidance behavior + _avoideObstacleTimer " + _avoideObstacleTimer);
                 }
                 else
                 {
@@ -62,8 +65,8 @@ public class AIController : MonoBehaviour
 
         if (_avoidanceActive != currAvoidanceActive)
         {
-            string behaviorName = _avoidanceActive ? "Avoidance" : "Go To Goal";
-            Debug.LogWarning("Changed behaviour to " + behaviorName);
+            //string behaviorName = _avoidanceActive ? "Avoidance" : "Go To Goal";
+            //Debug.LogWarning("Changed behaviour to " + behaviorName);
         }
 
         if (_avoidanceActive)
@@ -146,7 +149,7 @@ public class AIController : MonoBehaviour
             float combinedRadius = ball.GetRadius() * 1.1f + GetRadius() * 1.1f;
             Vector3 relativeVelocity = agentRigidBody.velocity - ball.GetVelocity();
 
-            Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.green);
+            //Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.green);
 
 
             Vector3 relativePosition = ball.GetPosition() - GetPosition();
@@ -185,7 +188,9 @@ public class AIController : MonoBehaviour
             Vector3 VOLegLeft = fwdCollisionComponent + sidewaysCollisionComponent_L;
             Vector3 t1Cross = Vector3.Cross(relativeVelocity, VOLegRight);
             Vector3 t2Cross = Vector3.Cross(relativeVelocity, VOLegLeft);
-            if (Vector3.Dot(t1Cross, t2Cross) < 0)
+            if (Vector3.Dot(relativeVelocity, VOLegRight) > 0
+                && Vector3.Dot(relativeVelocity, VOLegLeft) > 0
+                && Vector3.Dot(t1Cross, t2Cross) < 0)
             {
                 //potential collision
 
@@ -344,7 +349,7 @@ public class AIController : MonoBehaviour
                     //Debug.Log("object hit " + hits[0].collider.gameObject.name + " position " + hits[0].point);
                     objectiveGoal = hits[0].point;
                     objectiveGoal.y = transform.position.y;
-                    float err = ComputeAngleError(objectiveGoal) * 180.0f / Mathf.PI;
+                    //float err = ComputeAngleError(objectiveGoal) * 180.0f / Mathf.PI;
                     //Debug.Log("Angle error " + err);
                 }
             }
@@ -368,7 +373,7 @@ public class AIController : MonoBehaviour
     }
 
     private Rigidbody agentRigidBody;
-    private float groundHeight;
+    //private float groundHeight;
     private Vector3 objectiveGoal;
     private float prevError;
 

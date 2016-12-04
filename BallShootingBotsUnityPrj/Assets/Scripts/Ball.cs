@@ -51,16 +51,18 @@ public class Ball : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        Debug.LogWarning("Bullet OnCollisionEnter other name " + collision.collider.gameObject.name);
-        
-        //TODO double check if the rigidbody of the object we hit is not null!
-        if (collision.rigidbody.tag == "Agent")
+        //Debug.LogWarning("Bullet OnCollisionEnter other name " + collision.collider.gameObject.name);
+
+        if (collision.rigidbody != null)
         {
-            //TODO this could be slow, needs optimization
-            AgentGameState agentGameState = collision.rigidbody.gameObject.GetComponent<AgentGameState>();
-            agentGameState.ApplyDamage(damage);
+            if (collision.rigidbody.tag == "Agent")
+            {
+                //TODO this could be slow, needs optimization
+                AgentGameState agentGameState = collision.rigidbody.gameObject.GetComponent<AgentGameState>();
+                agentGameState.ApplyDamage(damage);
+            }
         }
-        GameObject.Destroy(this.gameObject);
+        //GameObject.Destroy(this.gameObject);
     }
 
     private float _radius;

@@ -7,13 +7,13 @@ public class PlayerController : MonoBehaviour
     public float maxTorque = 2.0f;
 
     private Rigidbody rb;
-    private float groundHeight;
+    //private float groundHeight;
 
     void Start()
     {
         Debug.Log("Start called");
         rb = GetComponent<Rigidbody>();
-        groundHeight = rb.position.y;
+        //groundHeight = rb.position.y;
     }
 
     void FixedUpdate()
