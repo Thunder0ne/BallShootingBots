@@ -4,19 +4,9 @@ using System.Collections.Generic;
 public class ShootingController : MonoBehaviour
 {
     [SerializeField]
-    private Transform ballSpawn;
-
-    [SerializeField]
-    private GameObject ball;
-
-    [SerializeField]
-    private float shootingPeriod = 1.0f;
-
-    [SerializeField]
     private GameManager gameManager;
 
-
-    private float _time;
+    public const float INITIAL_BALL_VELOCITY = 10.0f;
 
     // Use this for initialization
     void Start ()
@@ -42,28 +32,24 @@ public class ShootingController : MonoBehaviour
         //        Debug.Log("attribute " + attr.GetType().ToString());
         //    }
         //}
-	}
+        _ballSpawn = GetComponentInChildren<ShootingBarrel>().gameObject.transform;
+    }
 
 	// Update is called once per frame
 	void Update ()
     {
-        _time += Time.deltaTime;
-        //if(Input.GetButton("Fire1"))
-        if(Input.GetKeyDown(KeyCode.LeftControl))
-        {
-            if (_time > shootingPeriod)
-            {
-                _time = 0;
-                ShootBall();
-            }
-        }
+        
 	}
 
-    private void ShootBall()
+    public void ShootBall(Ball ball)
     {
-        GameObject ballGobj = GameObject.Instantiate(this.ball, ballSpawn.position, ballSpawn.rotation) as GameObject;
-        Ball ball = ballGobj.GetComponent<Ball>();
+        ball.transform.position = _ballSpawn.position;
+        ball.transform.rotation = _ballSpawn.rotation;
+        ball.gameObject.SetActive(true);
+        Rigidbody ballRigidBody = ball.GetRigidBody();
+        ballRigidBody.velocity = this.transform.forward * INITIAL_BALL_VELOCITY;
         gameManager.AddBall(ball);
-        ball.SetGameManager(gameManager);
     }
+
+    private Transform _ballSpawn;
 }

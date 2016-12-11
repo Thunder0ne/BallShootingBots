@@ -6,17 +6,14 @@ public class Ball : MonoBehaviour
     [SerializeField]
     float damageValue = 1.0f;
 
-    private GameManager gameManager;
+    public TeamId teamId { get; set; }
 
-    void OnDestroy()
+    public Rigidbody GetRigidBody()
     {
-        gameManager.RemoveBall(this);
+        return ballRigidBody;
     }
 
-    public void SetGameManager(GameManager gameManager)
-    {
-        this.gameManager = gameManager;
-    }
+    public bool Harmfull { get; private set; }
 
     public float damage
     {
@@ -40,13 +37,35 @@ public class Ball : MonoBehaviour
     {
         return ballRigidBody.position;
     }
-    
-    // Use this for initialization
-	void Start ()
+
+    public Vector3 GetVelocityBeforePhysicsUpdate()
     {
+        return _velocityBeforePhysicsUpdate;
+    }
+
+    // Use this for initialization
+    void Start()
+    {
+        teamId = TeamId.NoTeam;
         ballRigidBody = GetComponent<Rigidbody>();
-        GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().transform.forward * 10.0f;
+        //GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().transform.forward * 10.0f;
         _radius = GetComponent<Renderer>().bounds.extents.x;
+    }
+
+    void FixedUpdate()
+    {
+        _velocityBeforePhysicsUpdate = ballRigidBody.velocity;
+    }
+
+    void Update()
+    {
+        //Debug.Log("ball velocity " + ballRigidBody.velocity);
+
+    }
+
+    private void OnEnable()
+    {
+        Harmfull = true;
     }
 
     void OnCollisionEnter(Collision collision)
@@ -55,11 +74,12 @@ public class Ball : MonoBehaviour
 
         if (collision.rigidbody != null)
         {
-            if (collision.rigidbody.tag == "Agent")
+            if (collision.rigidbody.tag == "Wall")
             {
+                Harmfull = false;
                 //TODO this could be slow, needs optimization
-                AgentGameState agentGameState = collision.rigidbody.gameObject.GetComponent<AgentGameState>();
-                agentGameState.ApplyDamage(damage);
+                //AgentGameState agentGameState = collision.rigidbody.gameObject.GetComponent<AgentGameState>();
+                //agentGameState.ApplyDamage(damage);
             }
         }
         //GameObject.Destroy(this.gameObject);
@@ -78,4 +98,6 @@ public class Ball : MonoBehaviour
     //        Destroy(gameObject);
     //    }
     //}
+
+    private Vector3 _velocityBeforePhysicsUpdate;
 }

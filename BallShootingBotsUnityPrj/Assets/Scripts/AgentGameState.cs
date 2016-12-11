@@ -16,7 +16,8 @@ public class AgentGameState : MonoBehaviour
 	
 	// Update is called once per frame
 	void Update () {
-	
+        
+
 	}
 
     public void ApplyDamage(float damage)
