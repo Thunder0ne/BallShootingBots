@@ -72,11 +72,11 @@ public class AIController : MonoBehaviour
         if (_avoidanceActive)
         {
             _avoideObstacleTimer += Time.fixedDeltaTime;
-            //GoToGoal(avoidanceGoal);
+            GoToGoal(avoidanceGoal);
         }
         else
         {
-            //GoToGoal(objectiveGoal);
+            GoToGoal(objectiveGoal);
         }                
     }
 
