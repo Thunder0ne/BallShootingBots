@@ -2,6 +2,18 @@
 using System.Collections;
 using System.Collections.Generic;
 
+public struct VelocityObstacle
+{
+    public Vector3 VOLeft;
+    public Vector3 VORight;
+
+    public VelocityObstacle(Vector3 VOLeft, Vector3 VORight)
+    {
+        this.VOLeft = VOLeft;
+        this.VORight = VORight;
+    }
+}
+
 public class AIController : MonoBehaviour
 {
     public float maxForce = 5.0f;
@@ -137,8 +149,19 @@ public class AIController : MonoBehaviour
     //    rb.AddRelativeTorque(0.0f, moveHorizontal * maxTorque, 0.0f);
     //}    
 
+    public List<VelocityObstacle> GetVelocityObstacles()
+    {
+        return _velocityObstacles;
+    }
+
+    public Vector3 GetGoal()
+    {
+        return objectiveGoal;
+    }
+
     private bool AvoidBallsFindGoal()
     {
+        _velocityObstacles.Clear();
         LinkedList<Ball> balls = gameManager.GetBalls();
         LinkedListNode<Ball> iterator = balls.First;
         bool potentialCollisionDetected = false;
@@ -257,6 +280,8 @@ public class AIController : MonoBehaviour
                     Debug.DrawLine(GetPosition(), avoidanceGoal, Color.red);
 
                     Debug.DrawLine(GetPosition(), GetPosition() + relativeVelocity, Color.magenta);
+
+                    _velocityObstacles.Add(new VelocityObstacle(VOLegLeft, VOLegRight));
 
                     //to set the goal far away in order the robot not to slow down
                     //TODO this choice can be optimized
@@ -383,4 +408,6 @@ public class AIController : MonoBehaviour
     private float _radius;
     private const float MAX_PREDICTION_TIME_HORIZON = 1.0f;
     private float _avoideObstacleTimer;
+
+    private List<VelocityObstacle> _velocityObstacles = new List<VelocityObstacle>();
 }

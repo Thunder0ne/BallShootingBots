@@ -9,7 +9,7 @@ public class ShootingController : MonoBehaviour
     public const float INITIAL_BALL_VELOCITY = 10.0f;
 
     // Use this for initialization
-    void Start ()
+    void Awake ()
     {
         //ShootingBarrel[] shootingBarrelsAttachedScripts = this.GetComponentsInChildren<ShootingBarrel>(true);
         //if(shootingBarrelsAttachedScripts.Length != 1)

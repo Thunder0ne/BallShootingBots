@@ -44,7 +44,7 @@ public class Ball : MonoBehaviour
     }
 
     // Use this for initialization
-    void Start()
+    void Awake()
     {
         teamId = TeamId.NoTeam;
         ballRigidBody = GetComponent<Rigidbody>();
