@@ -30,6 +30,7 @@ public class DodgeBallPlayer : MonoBehaviour, IBallCollisionListener
         _renderers = GetComponentsInChildren<Renderer>();
         BallCollisionEventTriggerer ballCollisionEventTriggerer = GetComponent<BallCollisionEventTriggerer>();
         ballCollisionEventTriggerer.AddBallCollisionListener(this);
+        gameManager.AddPlayer(this);
     }
 
     // Update is called once per frame
@@ -37,6 +38,16 @@ public class DodgeBallPlayer : MonoBehaviour, IBallCollisionListener
     {
 	
 	}
+
+    private void OnDestroy()
+    {
+        gameManager.RemovePlayer(this);
+    }
+
+    public TeamId GetTeamId()
+    {
+        return teamId;
+    }
 
     public bool HasABall()
     {
@@ -59,7 +70,7 @@ public class DodgeBallPlayer : MonoBehaviour, IBallCollisionListener
 
     public void HandleBallCollision(Ball ball)
     {
-        bool collision = (ball.Harmfull) && (ball.teamId != teamId);
+        bool collision = (ball.teamId != TeamId.NoTeam) && (ball.teamId != teamId);
         if(!HasABall())
         {
             if (TryAndCollectBall(ball))

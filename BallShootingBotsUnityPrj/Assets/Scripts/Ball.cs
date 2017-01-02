@@ -6,14 +6,15 @@ public class Ball : MonoBehaviour
     [SerializeField]
     float damageValue = 1.0f;
 
+    [SerializeField]
+    GameManager gameManager;
+
     public TeamId teamId { get; set; }
 
     public Rigidbody GetRigidBody()
     {
         return ballRigidBody;
     }
-
-    public bool Harmfull { get; private set; }
 
     public float damage
     {
@@ -52,6 +53,11 @@ public class Ball : MonoBehaviour
         _radius = GetComponent<Renderer>().bounds.extents.x;
     }
 
+    private void Start()
+    {
+        gameManager.AddBall(this);
+    }
+
     void FixedUpdate()
     {
         _velocityBeforePhysicsUpdate = ballRigidBody.velocity;
@@ -63,11 +69,6 @@ public class Ball : MonoBehaviour
 
     }
 
-    private void OnEnable()
-    {
-        Harmfull = true;
-    }
-
     void OnCollisionEnter(Collision collision)
     {
         //Debug.LogWarning("Bullet OnCollisionEnter other name " + collision.collider.gameObject.name);
@@ -76,7 +77,7 @@ public class Ball : MonoBehaviour
         {
             if (collision.rigidbody.tag == "Wall")
             {
-                Harmfull = false;
+                teamId = TeamId.NoTeam;
                 //TODO this could be slow, needs optimization
                 //AgentGameState agentGameState = collision.rigidbody.gameObject.GetComponent<AgentGameState>();
                 //agentGameState.ApplyDamage(damage);

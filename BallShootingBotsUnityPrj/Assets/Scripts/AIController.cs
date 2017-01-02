@@ -23,6 +23,8 @@ public class AIController : MonoBehaviour
     [SerializeField]
     private GameManager gameManager;
 
+    private AIDecisionBehavior _aiDecisionBehaviour;
+
 
     //float at max angul vel of 3.6 Radians / sec
     //good params are kp = 3.75 and kd = 0.65
@@ -39,6 +41,7 @@ public class AIController : MonoBehaviour
         agentRigidBody = GetComponent<Rigidbody>();
         //groundHeight = agentRigidBody.position.y;
         _radius = GetComponentInChildren<SphereCollider>().radius;
+        _aiDecisionBehaviour = GetComponent<AIDecisionBehavior>();
 #if QUICK_TEST
         objectiveGoal = new Vector3(-13.0f, 0.5f, 0.0f);
 #endif
@@ -159,6 +162,12 @@ public class AIController : MonoBehaviour
         return objectiveGoal;
     }
 
+    public void SetGoal(Vector3 position)
+    {
+        objectiveGoal = position;
+        objectiveGoal.y = transform.position.y;
+    }
+
     private bool AvoidBallsFindGoal()
     {
         _velocityObstacles.Clear();
@@ -168,6 +177,11 @@ public class AIController : MonoBehaviour
         for (int i = 0; i < balls.Count && iterator != null; i++)
         {
             Ball ball = iterator.Value;
+            //this is some sort of patch, improve the code design
+            if (!_aiDecisionBehaviour.IsBallDangerous(ball))
+            {
+                continue;
+            }
             iterator = iterator.Next;
             float combinedRadius = ball.GetRadius() * 1.1f + GetRadius() * 1.1f;
             Vector3 relativeVelocity = agentRigidBody.velocity - ball.GetVelocity();
